@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+     <head>
+          <title> Yelp Projection </title>
+             <script src="https://d3js.org/d3.v4.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script> 
+
+	</head>
+	<body id="body">
+	<div id="map"></div>
+	<style>
+	
+		#search_form{
+		background-color: #d0d0d0;
+		color:#2F3031;
+		border-radius: 19px;
+		width: 80%;
+		}
+		#map{
+			height:500px;
+			width:100%;
+		}
+		#search_form{
+			border: solid .5px #bfbfbf
+;
+
+			text-align: center;
+			margin: 0 auto;
+		}
+		#info_content{
+			text-align: center;
+		}
+	</style>
+	<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAgOxluyXdoBV1jzea3-qCo6iLUyay5VJs&callback=initMap"
+    async defer></script>
+		<script>
+		var markers=[];
+		var marker;
+
+		var map;
+		//sets in place location for the rest of algorithm 
+		var city_name = "";
+		//initializes city_info
+		var city_info = new Object();
+		//sets a DOM reference variable  to the body tag 
+		var body= document.body;
+		//initializes list of all the cities in the csv
+		var info= new Array();
+		//create option
+		var dfault_option = document.createElement('option');
+		//default option label
+		var dfault_label = document.createTextNode("Select a city");
+		// bind label to option
+		dfault_option.appendChild(dfault_label);
+		// give value to dfault option
+		dfault_option.value = "default";
+		// nest option in document
+		body.appendChild(dfault_option);
+		//push option one to initialize this select with default option
+		//info.push(dfault_option);
+		// add new element on the page to define which marker you want to see 
+		var label = document.createElement('p');
+		var label_content = document.createTextNode("Select which options you want to know about a city then select a city/town of your choice  ");
+		label.appendChild(label_content);
+		
+
+
+
+		//CSV Parsed: Data is the parsed CSV
+		d3.csv("eric_data_11192016.csv", function(Data) { 
+			//d is an individual record iterated over in the for loop
+			//all inside the for loop so this will be iterated multiple times 
+			Data.forEach(function(d){
+				//This turns all the numbers wrapped in strings into floats 
+				d.average_stars= +d.average_stars;
+				d.Latitude= +d.Latitude;
+				d.Longitude= +d.Longitude;
+				d.pct_reviews_local_organic_words = +d.pct_reviews_local_organic_words;
+				//pushes information into a datastructure
+				info.push(d);
+				
+
+				// turns the strings into numbers
+				
+				//finds the body element after i added an ID
+				var text_elem = document.createElement('option');
+				//creates new element for adding table info
+				var text =document.createTextNode(d.ACS_location);
+				//creates node full of text to bind to element
+				text_elem.value= d.ACS_location;
+				//creates value for new element
+				text_elem.appendChild(text);
+				//binds text to new made element
+				body.appendChild(text_elem);
+				//adds new element with newly bound text to document
+			});
+			//* print the data from the info list here*
+			// 
+ 		
+
+// needs to be in scope of csv data manipulation to work properly wrapping all the options in select at least which means
+// select needs to be inside scope 
+//creates select element
+			 select = document.createElement('select');
+			select.id='select_city';
+			select.setAttribute('onchange',"updateMarker()");
+			$('option').wrapAll(select);
+			sel= $('#select_city')[0];
+			//create form with radio buttons  and labels for each of them
+			//eventually wrap the inputs with the form object
+			// if the checkboxes  are selected then add values to 
+			form =  document.createElement('form');
+			form.id= 'search_form';
+			form.appendChild(label);
+
+			//create checkbox for each element
+			restaurants = document.createElement('input');
+			restaurants.type = 'checkbox';
+			res_label = document.createElement('label');			
+			res_text =document.createTextNode("Restaurants Reviewed");
+			res_label.appendChild(res_text);
+			form.appendChild(restaurants);
+			form.appendChild(res_label);
+			form.appendChild(document.createElement('br'));
+
+			reviews = document.createElement('input');
+			reviews.type = 'checkbox';
+			rev_label = document.createElement('label');
+			rev_text = document.createTextNode("# of Reviews");
+			rev_label.appendChild(rev_text);
+			form.appendChild(reviews);
+			form.appendChild(rev_label);
+			form.appendChild(document.createElement('br'));
+
+			rating = document.createElement('input');
+			rating.type = 'checkbox';
+			rat_label = document.createElement('label');
+			rat_text = document.createTextNode("Average Rating");
+			rat_label.appendChild(rat_text);
+			form.appendChild(rating);
+			form.appendChild(rat_label);
+			form.appendChild(document.createElement('br'));
+
+			avg_w_local = document.createElement('input');
+			avg_w_local.type = 'checkbox';
+			avg_w_label = document.createElement('label');
+			avgw_text = document.createTextNode("Average of Ratings with word 'local'");
+			avg_w_label.appendChild(avgw_text);
+			form.appendChild(avg_w_local);
+			form.appendChild(avg_w_label);
+			form.appendChild(document.createElement('br'));
+
+			avg_wout_local= document.createElement('input');
+			avg_wout_local.type = 'checkbox';
+			avg_wout_label = document.createElement('label');
+			avgwout_text = document.createTextNode("Average of Ratings without word 'local'");
+			avg_wout_label.appendChild(avgwout_text);
+			form.appendChild(avg_wout_local);
+			form.appendChild(avg_wout_label);
+			form.appendChild(document.createElement('br'));
+
+			geoid= document.createElement('input');
+			geoid.type = 'checkbox';
+			geo_label = document.createElement('label');
+			geo_text = document.createTextNode("Geo ID");
+			geo_label.appendChild(geo_text);
+			form.appendChild(geoid);
+			form.appendChild(geo_label);
+			form.appendChild(document.createElement('br'));
+
+			zip= document.createElement('input');
+			zip.type = 'checkbox';
+			zip_label = document.createElement('label');
+			zip_text = document.createTextNode("Zip Code");
+			zip_label.appendChild(zip_text);
+			form.appendChild(zip);
+			form.appendChild(zip_label);
+			form.appendChild(document.createElement('br'));
+
+			review_pcnt = document.createElement('input');
+			review_pcnt.type = 'checkbox';
+			rpcnt_label = document.createElement('label');
+			rpcnt_text = document.createTextNode("Percentage with 'local' in review");
+			rpcnt_label.appendChild(rpcnt_text);
+			form.appendChild(review_pcnt);
+			form.appendChild(rpcnt_label);
+			form.appendChild(document.createElement('br'));
+			form.appendChild(sel);
+
+			body.appendChild(form);
+			//$('input').wrapAll(form);
+			
+			//val = sel.value;
+
+			//console.log(val);
+			//while( sel != 'default' ){
+			//city_name = sel.value;
+		//}
+		// this works for now 
+
+		//TODO: add ajax functionality to the select menu
+			// city_info = new Object();
+			// var data = city_info.ACS_location+', '+city_info.restaurants_reviewed;
+	  //    	var infowindow = new google.maps.InfoWindow({content: data});
+
+	    });
+
+			
+
+		//gets the city your looking for in the collection of objects
+			 function get_city(obj) { 
+		    	return obj.ACS_location === city_name
+			}; 
+
+//updates marker
+function updateMarker(){
+	//clears map of all the extra markers
+
+	initMap();
+	//changes the city name for search functionality
+	city_name= sel.value;
+	// gives us object data about city
+	city_info = info.find(get_city);
+	// new latlng coordinates for new marker
+	var latlng = {lat:city_info['Latitude'], lng:city_info['Longitude']};
+	//verifying the city name
+		//city_name=city_info.ACS_location;
+		marker = new google.maps.Marker({
+	position: {lat:city_info['Latitude'] , lng: city_info['Longitude']},
+	map: map,
+	});
+	 // Pops up information where marker is in a psuedo tooltips
+  	 marker.addListener( 'mouseover', function() {
+
+ 	  data = "<b>"+ city_info.ACS_location+"</b>";
+ 	  if(restaurants.checked){
+			data= "<div id= 'info_content'>" + data+" <div> Restaurants Reviewed: <b>"+city_info.restaurants_reviewed+'</b></div> <//div>';}
+ 	  if(reviews.checked){
+ 	  		data= "<div id= 'info_content'>" + data+"<div> # of Reviews: <b>"+city_info.reviews+'</b></div> <//div>';}
+ 	  if(rating.checked){
+ 	  		data= "<div id= 'info_content'>" + data+"<div> Avg Rating: <b>"+city_info.average_stars+'</b></div> <//div>';}
+ 	  if(avg_w_local.checked){
+ 	  	data= "<div id= 'info_content'>" + data+"<div> Avg Rating including 'Local': <b>"+city_info.avg_stars_local_organic_words+'</b> </div> <//div>';}
+
+ 	  if(avg_wout_local.checked){data= "<div id= 'info_content'>" + data+"<div>Avg Rating without 'Local': <b>"+city_info.avg_stars_no_local_organic_words+'</b></div> <//div>';}
+
+ 	  if(geoid.checked){data= "<div id= 'info_content'>" + data+"<div> Geo ID: <b>" +city_info["GEO.id"]+'</b> </div> <//div>'};
+
+ 	  if(zip.checked){data = "<div id= 'info_content'>" + data+"<div> Zip Code: <b>"+city_info.Zip_Code+"</b> </div> <//div>";}
+ 	  if(review_pcnt.checked){data= "<div id= 'info_content'>" + data +"<div> Percentage of reviews with 'local':<b> "+city_info.pct_reviews_local_organic_words*100+'%</b> </div> <//div>';}
+ 	  							
+ 	  //if( buttons selected)
+	 infowindow = new google.maps.InfoWindow({
+		    content: data
+		   });
+	 infowindow.open(map,marker);
+	   });
+  // 	 marker.addListener( 'mouseout', function() {
+	 // infowindow.close();
+	 //   });
+
+		marker.setPosition(latlng);
+
+	//marker.setMap(map);
+
+
+
+
+}
+
+
+		// initiates map 
+			function initMap() {
+				//gets the city your looking for in the collection of objects
+					// function get_city(obj) { 
+			 	 //  	return obj.ACS_location === city_name;
+					// 	} 
+				//returns the city specified by user later into a usable object
+				city_info = info.find(get_city);
+
+				//prepares the map using Google maps API 
+	      	 	map = new google.maps.Map(document.getElementById('map'), {
+	          	center: {lat:42.825646 , lng: -75.544673},
+	         	 zoom: 7});	      	 	
+				
+			  	return map;
+			};
+			
+
+		
+		 </script>
+		 
+    
+	</body>
+			
+</html>	
